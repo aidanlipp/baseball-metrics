@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 def load_data():
-    return pd.read_csv('/content/drive/My Drive/Data/Testing Metrics.csv')
+    return pd.read_csv('Testing Metrics.csv')
 
 def calculate_stats(player_data):
     bat_speeds = [float(player_data[f'Bat Speed {i}']) for i in range(1,6)]
