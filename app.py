@@ -101,11 +101,21 @@ Player Name: {name}
 
 {name}'s exit velocity average was {exit_velo}mph and their swing test showed {vba_high} swings above -24°. Their average VBA was {avg_vba}°. Ideally, we want to see their bat more vertical. Once achieved, it will allow them to stay "on plane" with the ball longer, which enables them to hit the ball hard when their timing is off. The drills below will help, I recommend 3 sets of 8 reps of each.
 
-Environment        Day 1                  Day 2
-Bat Speed         PVC Torso Turns        PVC Torso Turns
-Flips, short BP   Double Tee Stop Swing  Double Tee Stop Swing  
-Default to Tee    Hinge Against Tee      Hinge Against Tee"""
+Environment                  Day 1                           Day 2
+_______________________________________________________________________________
+Bat Speed
+Flips, short BP if available PVC Torso Turns at Various    PVC Torso Turns at Various
+Default to Tee if you need to    Heights                       Heights
+                            Double Tee Stop Swing           Double Tee Stop Swing
+                            Hinge Against Tee               Hinge Against Tee
 
+Short BP                    Hunt Heaters, Hit the ball      Runner on 3B, Infield In, Hit
+                           HARD                            the Ball Hard to the OF
+
+Live/Machine               If Available                     If Available
+
+If you're able to hit a 3rd day you should, If you have access to a machine, work on high velo at
+least once per week."""
 def create_pdf(content, filename):
     class PDF(FPDF):
         def header(self):
