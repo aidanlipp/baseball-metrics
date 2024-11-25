@@ -125,12 +125,17 @@ search = st.text_input("", placeholder="Search by name...")
 if search:
     matches = df[df['First Name'].str.contains(search, case=False) | df['Last Name'].str.contains(search, case=False)]
     if not matches.empty:
-        player = matches.iloc[0]
+        player_options = [f"{player['First Name']} {player['Last Name']} ({player['age']})" for _, player in matches.iterrows()]
+        selected_player = st.selectbox("Select a player", player_options)
+        
+        player_index = player_options.index(selected_player)
+        player = matches.iloc[player_index]
+        
         stats = calculate_age_based_stats(player, df)
         if stats is None:
             st.error("Unable to calculate stats due to missing data")
         else:
-            st.header(f"{player['First Name']} {player['Last Name']} ({player['age']})")
+            st.header(selected_player)
             
             st.subheader("Average Metrics")
             cols = st.columns(3)
