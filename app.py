@@ -74,49 +74,84 @@ def calculate_age_based_stats(player_data, df):
     }
 
 DECEL_TEMPLATE = """Speed Gain/Deceleration Program
-Player Name: {name}
-{name}'s exit velocity average was {exit_velo}mph. Based on the swing test results, an area they need to focus on is deceleration. In order for one body part to speed up the other needs to hit the brakes. Once achieved, their body will rotate faster and more efficiently. The drills listed below will help, I recommend 3 sets of 8-10 reps each.
 
-Environment Day 1 Day 2
-Bat Speed             Cardboard Slider         Cardboard Slider
-Flips, short BP      Heels Down,No Stride     Heels Down,No Stride
-Default to Tee       Double Tee Stop Swing     Double Tee Stop Swing"""
+Player Name: {name}
+
+{name}'s exit velocity average was {exit_velo}mph. Based on the swing test results, an area they need to
+focus on is deceleration. In order for one body part to speed up the other needs to hit the brakes. Once
+achieved, their body will rotate faster and more efficiently. The drills listed below will help, I recommend
+3 sets of 8-10 reps each.
+
+Environment        Day 1                  Day 2
+Bat Speed         Cardboard Slider       Cardboard Slider
+Flips, short BP   Heels Down,No Stride   Heels Down,No Stride
+Default to Tee    Double Tee Stop Swing  Double Tee Stop Swing"""
 
 ROT_ACC_TEMPLATE = """Rotational Acceleration and Sequencing Program
-Player Name: {name}
-{name}'s exit velocity average was {exit_velo}mph. They were placed in this program because their Rotational Acceleration results averaged {rot_acc}g's (Ideally, we want this 15+). What this means is that they are rotating out of order (sequence), which will reduce their barrel accuracy & rotational speed. The drills listed below will help, I recommend 3 sets of 8 reps of each.
 
-Environment Day 1 Day 2
-Bat Speed             45 Degree Drill          45 Degree Drill
-Flips, short BP      No Stride, 1,2,3 rhythm   No Stride, 1,2,3 rhythm
-Default to Tee       PVC Stop Swing            PVC Stop Swing"""
+Player Name: {name}
+
+{name}'s exit velocity average was {exit_velo}mph. They were placed in this program because their
+Rotational Acceleration results averaged {rot_acc}g's (Ideally, we want this 15+). What this means is that
+they are rotating out of order (sequence), which will reduce their barrel accuracy & rotational speed. The
+drills listed below will help, I recommend 3 sets of 8 reps of each.
+
+Environment        Day 1                     Day 2
+Bat Speed         45 Degree Drill           45 Degree Drill
+Flips, short BP   No Stride, 1,2,3 rhythm   No Stride, 1,2,3 rhythm
+Default to Tee    PVC Stop Swing            PVC Stop Swing"""
 
 VBA_TEMPLATE = """Vertical Bat Angle (VBA) Program
-Player Name: {name}
-{name}'s exit velocity average was {exit_velo}mph and their swing test showed {vba_high} swings above -24°. Their average VBA was {avg_vba}°. Ideally, we want to see their bat more vertical. Once achieved, it will allow them to stay "on plane" with the ball longer, which enables them to hit the ball hard when their timing is off. The drills below will help, I recommend 3 sets of 8 reps of each.
 
-Environment Day 1 Day 2
-Bat Speed             PVC Torso Turns          PVC Torso Turns
-Flips, short BP      Double Tee Stop Swing     Double Tee Stop Swing
-Default to Tee       Hinge Against Tee         Hinge Against Tee"""
+Player Name: {name}
+
+{name}'s exit velocity average was {exit_velo}mph and their swing test showed {vba_high} swings above -24°.
+Their average VBA was {avg_vba}°. Ideally, we want to see their bat more vertical. Once achieved, it will
+allow them to stay "on plane" with the ball longer, which enables them to hit the ball hard when their
+timing is off. The drills below will help, I recommend 3 sets of 8 reps of each.
+
+Environment        Day 1                  Day 2
+Bat Speed         PVC Torso Turns        PVC Torso Turns
+Flips, short BP   Double Tee Stop Swing  Double Tee Stop Swing  
+Default to Tee    Hinge Against Tee      Hinge Against Tee"""
 
 def create_pdf(content, filename):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    
-    pdf.multi_cell(0, 10, content)
-    
-    pdf.set_y(-60)
-    pdf.multi_cell(0, 10, """Who Wrote this Report?
-Dan Kennon
-dkennon@elitebaseballtraining.com
-(575) 520 1174
+    class PDF(FPDF):
+        def header(self):
+            self.set_font('Arial', 'B', 16)
+            self.cell(0, 10, content.split('\n')[0], 0, 1, 'L')  # Title
+            self.ln(10)
 
-Next Steps
-Week 1 - 4: Execute the drills to the best of your ability.
-Week 5 - 8: Reach out to Dan Kennon for "form checks."
-Week 9 - 12: If consistent, reach out for additional drills.""")
+        def footer(self):
+            self.set_y(-30)
+            self.set_font('Arial', 'B', 12)
+            self.cell(0, 10, 'Who Wrote this Report?', 0, 1, 'L')
+            self.set_font('Arial', '', 12)
+            self.cell(0, 6, 'Dan Kennon', 0, 1, 'L')
+            self.cell(0, 6, 'dkennon@elitebaseballtraining.com', 0, 1, 'L')
+            self.cell(0, 6, '(575) 520 1174', 0, 1, 'L')
+
+    pdf = PDF()
+    pdf.add_page()
+    pdf.set_font('Arial', '', 12)
+    pdf.set_left_margin(20)
+    pdf.set_right_margin(20)
+    
+    # Skip title (already in header)
+    content_lines = content.split('\n')[1:]
+    
+    # Player name
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, content_lines[1], 0, 1, 'L')
+    pdf.ln(5)
+    
+    # Main text
+    pdf.set_font('Arial', '', 12)
+    for line in content_lines[2:]:
+        if "Environment" in line:
+            pdf.set_font('Arial', 'B', 12)
+        pdf.multi_cell(0, 8, line)
+        pdf.set_font('Arial', '', 12)
     
     return pdf.output(dest='S').encode('latin-1')
 
