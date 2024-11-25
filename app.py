@@ -99,28 +99,33 @@ VBA_TEMPLATE = """Vertical Bat Angle (VBA) Program
 
 Player Name: {name}
 
-{name}'s exit velocity average was {exit_velo}mph and their swing test showed {vba_high} swings above -24°. Their average VBA was {avg_vba}°. Ideally, we want to see their bat more vertical. Once achieved, it will allow them to stay "on plane" with the ball longer, which enables them to hit the ball hard when their timing is off. The drills below will help, I recommend 3 sets of 8 reps of each.
+{name}'s exit velocity average was {exit_velo}mph and their swing test showed {vba_high} swings above -24°.
+Their average VBA was {avg_vba}°. Ideally, we want to see their bat more vertical. Once achieved, it will
+allow them to stay "on plane" with the ball longer, which enables them to hit the ball hard when their
+timing is off. The drills below will help, I recommend 3 sets of 8 reps of each.
 
-Environment                  Day 1                           Day 2
-_______________________________________________________________________________
+Environment          Day 1                           Day 2
+_____________________________________________________________________
+
 Bat Speed
-Flips, short BP if available PVC Torso Turns at Various    PVC Torso Turns at Various
-Default to Tee if you need to    Heights                       Heights
-                            Double Tee Stop Swing           Double Tee Stop Swing
-                            Hinge Against Tee               Hinge Against Tee
+Flips, short BP      PVC Torso Turns at Various     PVC Torso Turns at Various
+if available         Heights                        Heights
+Default to Tee       Double Tee Stop Swing          Double Tee Stop Swing
+if you need to       Hinge Against Tee              Hinge Against Tee
 
-Short BP                    Hunt Heaters, Hit the ball      Runner on 3B, Infield In, Hit
-                           HARD                            the Ball Hard to the OF
+Short BP            Hunt Heaters, Hit the ball      Runner on 3B, Infield In, Hit
+                   HARD                             the Ball Hard to the OF
 
-Live/Machine               If Available                     If Available
+Live/Machine       If Available                     If Available
 
 If you're able to hit a 3rd day you should, If you have access to a machine, work on high velo at
 least once per week."""
+
 def create_pdf(content, filename):
     class PDF(FPDF):
         def header(self):
             self.set_font('Arial', 'B', 16)
-            self.cell(0, 10, content.split('\n')[0], 0, 1, 'L')  # Title
+            self.cell(0, 10, content.split('\n')[0], 0, 1, 'L')
             self.ln(10)
 
         def footer(self):
@@ -129,29 +134,43 @@ def create_pdf(content, filename):
             self.cell(0, 10, 'Who Wrote this Report?', 0, 1, 'L')
             self.set_font('Arial', '', 12)
             self.cell(0, 6, 'Dan Kennon', 0, 1, 'L')
+            self.set_font('Arial', '', 10)
+            self.set_text_color(0, 0, 255)  # Blue color for email
             self.cell(0, 6, 'dkennon@elitebaseballtraining.com', 0, 1, 'L')
+            self.set_text_color(0, 0, 0)    # Reset to black
             self.cell(0, 6, '(575) 520 1174', 0, 1, 'L')
 
     pdf = PDF()
     pdf.add_page()
     pdf.set_font('Arial', '', 12)
-    pdf.set_left_margin(20)
-    pdf.set_right_margin(20)
+    pdf.set_margins(20, 20, 20)
     
-    # Skip title (already in header)
-    content_lines = content.split('\n')[1:]
+    # Split content into sections
+    sections = content.split('\n\n')
+    
+    # Title already handled in header
     
     # Player name
     pdf.set_font('Arial', 'B', 12)
-    pdf.cell(0, 10, content_lines[1], 0, 1, 'L')
+    pdf.cell(0, 10, sections[1], 0, 1, 'L')
+    
+    # Description
+    pdf.set_font('Arial', '', 12)
+    pdf.multi_cell(0, 6, sections[2])
     pdf.ln(5)
     
-    # Main text
+    # Table header
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, sections[3], 0, 1, 'L')
+    pdf.line(20, pdf.get_y(), 190, pdf.get_y())
+    
+    # Table content with proper spacing
     pdf.set_font('Arial', '', 12)
-    for line in content_lines[2:]:
-        if "Environment" in line:
+    lines = sections[4].split('\n')
+    for line in lines:
+        if line.startswith('Environment') or line.startswith('Bat Speed'):
             pdf.set_font('Arial', 'B', 12)
-        pdf.multi_cell(0, 8, line)
+        pdf.multi_cell(0, 6, line)
         pdf.set_font('Arial', '', 12)
     
     return pdf.output(dest='S').encode('latin-1')
