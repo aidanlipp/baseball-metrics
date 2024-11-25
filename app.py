@@ -13,7 +13,7 @@ def calculate_percentile(value, series):
 
 def calculate_age_based_stats(player_data, df):
     # Extract age groups
-    df['age_group'] = df['Age'].apply(extract_age_group)
+    df['age_group'] = df['age'].apply(extract_age_group)
     player_age_group = extract_age_group(player_data['Age'])
     
     # Filter for same age group
@@ -78,7 +78,7 @@ if search:
         player = matches.iloc[0]
         stats = calculate_age_based_stats(player, df)
         
-        st.header(f"{player['First Name']} {player['Last Name']} ({player['Age']})")
+        st.header(f"{player['First Name']} {player['Last Name']} ({player['age']})")
         
         st.subheader("Average Metrics")
         col1, col2, col3 = st.columns(3)
