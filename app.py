@@ -123,68 +123,39 @@ df = load_data()
 
 search = st.text_input("", placeholder="Search by name...")
 if search:
-    matches = df[df['First Name'].str.contains(search, case=False) | 
-                 df['Last Name'].str.contains(search, case=False)]
+    matches = df[df['First Name'].str.contains(search, case=False) | df['Last Name'].str.contains(search, case=False)]
     if not matches.empty:
         player = matches.iloc[0]
         stats = calculate_age_based_stats(player, df)
-        
         if stats is None:
             st.error("Unable to calculate stats due to missing data")
         else:
             st.header(f"{player['First Name']} {player['Last Name']} ({player['age']})")
             
             st.subheader("Average Metrics")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Avg Bat Speed (mph)", 
-                         f"{stats['bat_speed']['avg']:.1f}",
-                         f"{stats['bat_speed']['percentile']}%ile in {stats['age_group']}u")
-            with col2:
-                st.metric("Avg Rotational Acceleration (g)", 
-                         f"{stats['rot_acc']['avg']:.1f}",
-                         f"{stats['rot_acc']['percentile']}%ile in {stats['age_group']}u")
-            with col3:
-                st.metric("Avg Exit Velocity (mph)", 
-                         f"{stats['exit_velo']['avg']:.1f}",
-                         f"{stats['exit_velo']['percentile']}%ile in {stats['age_group']}u")
-            
+            cols = st.columns(3)
+            cols[0].metric("Avg Bat Speed (mph)", f"{stats['bat_speed']['avg']:.1f}", f"{stats['bat_speed']['percentile']}%ile in {stats['age_group']}u")
+            cols[1].metric("Avg Rot. Acc. (g)", f"{stats['rot_acc']['avg']:.1f}", f"{stats['rot_acc']['percentile']}%ile in {stats['age_group']}u") 
+            cols[2].metric("Avg Exit Velo (mph)", f"{stats['exit_velo']['avg']:.1f}", f"{stats['exit_velo']['percentile']}%ile in {stats['age_group']}u")
+
             st.subheader("Max Metrics")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Max Bat Speed (mph)", 
-                         f"{stats['max_bat_speed']['value']:.1f}",
-                         f"{stats['max_bat_speed']['percentile']}%ile in {stats['age_group']}u")
-            with col2:
-                st.metric("Max Rotational Acceleration (g)", 
-                         f"{stats['max_rot_acc']['value']:.1f}",
-                         f"{stats['max_rot_acc']['percentile']}%ile in {stats['age_group']}u")
-            with col3:
-                st.metric("Max Exit Velocity (mph)", 
-                         f"{stats['max_exit_velo']['value']:.1f}",
-                         f"{stats['max_exit_velo']['percentile']}%ile in {stats['age_group']}u")
+            cols = st.columns(3)
+            cols[0].metric("Max Bat Speed (mph)", f"{stats['max_bat_speed']['value']:.1f}", f"{stats['max_bat_speed']['percentile']}%ile in {stats['age_group']}u")
+            cols[1].metric("Max Rot. Acc. (g)", f"{stats['max_rot_acc']['value']:.1f}", f"{stats['max_rot_acc']['percentile']}%ile in {stats['age_group']}u")
+            cols[2].metric("Max Exit Velo (mph)", f"{stats['max_exit_velo']['value']:.1f}", f"{stats['max_exit_velo']['percentile']}%ile in {stats['age_group']}u")
             
             st.subheader("Swing Issues")
             issues = stats['swing_issues']
             if issues['vba_issue']:
-                message = []
-                if issues['vba_high'] >= 3:
-                    message.append(f"{issues['vba_high']} swings above -24°")
-                if issues['vba_low'] >= 3:
-                    message.append(f"{issues['vba_low']} swings below -45°")
+                message = [f"{issues['vba_high']} swings >-24°", f"{issues['vba_low']} swings <-45°"]
                 st.warning("VBA Issue: " + " and ".join(message))
-            if issues['rot_issue']:
-                st.warning(f"Rotational Acceleration Issue: Average below 7.0g")
-            if issues['decel_issue']:
+            elif issues['rot_issue']:
+                st.warning("Rotational Acceleration Issue: Avg <7.0g")
+            else:
                 st.success("Deceleration Pattern")
             
-if st.button("Export Training Reports", type="primary"):
-    docx_file = generate_report(player, stats)
-    st.download_button(
-        "Download Training Plan",
-        docx_file,
-        f"{player['Last Name']}_Individualized_Hitting_Plan_'24.docx",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
+            if st.button("Export Training Reports", type="primary"):
+                docx_file = generate_report(player, stats)
+                st.download_button("Download Plan", docx_file, f"{player['Last Name']}_Individualized_Hitting_Plan_'24.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
     else:
         st.warning("No player found")
