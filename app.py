@@ -78,8 +78,17 @@ def calculate_age_based_stats(player_data, df):
 
 def generate_report(player_data, stats):
     template_path = 'templates/'
-    # [template selection code]
     
+    if stats['swing_issues']['vba_issue']:
+        doc = Document(template_path + 'VBA_template.docx')
+        summary = f"{player_data['First Name']}'s exit velocity average was {stats['exit_velo']['avg']:.1f}mph and their swing test showed {stats['swing_issues']['vba_high']} swings above -24°. Their average VBA was {stats['swing_issues']['avg_vba']:.1f}°. Ideally, we want to see their bat more vertical. Once achieved, it will allow them to stay \"on plane\" with the ball longer, which enables them to hit the ball hard when their timing is off. The drills below will help, I recommend 3 sets of 8 reps of each."
+    elif stats['swing_issues']['rot_issue']:
+        doc = Document(template_path + 'RotAcc_template.docx')
+        summary = f"{player_data['First Name']}'s exit velocity average was {stats['exit_velo']['avg']:.1f}mph. They were placed in this program because their Rotational Acceleration results averaged {stats['rot_acc']['avg']:.1f}g's (Ideally, we want this 15+). What this means is that they are rotating out of order (sequence), which will reduce their barrel accuracy & rotational speed. The drills listed below will help, I recommend 3 sets of 8 reps of each."
+    else:
+        doc = Document(template_path + 'Decel_template.docx')
+        summary = f"{player_data['First Name']}'s exit velocity average was {stats['exit_velo']['avg']:.1f}mph. Based on the swing test results, an area they need to focus on is deceleration. In order for one body part to speed up the other needs to hit the brakes. Once achieved, their body will rotate faster and more efficiently. The drills listed below will help, I recommend 3 sets of 8-10 reps each."
+
     # Replace header content
     for section in doc.sections:
         header = section.header
@@ -91,11 +100,11 @@ def generate_report(player_data, stats):
                 if "{{SUMMARY}}" in run.text:
                     run.text = run.text.replace("{{SUMMARY}}", summary)
 
-    # Save document
     docx_stream = io.BytesIO()
     doc.save(docx_stream)
     docx_stream.seek(0)
     return docx_stream
+    
 st.set_page_config(page_title="Baseball Metrics Dashboard", layout="wide")
 st.title("Player Metrics Dashboard")
 
