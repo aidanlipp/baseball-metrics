@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from fpdf import FPDF
 
 def load_data():
     return pd.read_csv('Testing Metrics.csv')
@@ -29,7 +30,6 @@ def calculate_age_based_stats(player_data, df):
     age_max_rot_accs = age_group_df[[f'Rot. Acc. {i}' for i in range(1,6)]].max(axis=1)
     age_max_exit_velos = age_group_df[[f'Exit Velo {i}' for i in range(1,6)]].max(axis=1)
 
-    # Calculate swing issues
     vba_high = sum(1 for x in vbas if x > -24)
     vba_low = sum(1 for x in vbas if x < -45)
     avg_rot_acc = np.mean(rot_accs)
@@ -72,6 +72,75 @@ def calculate_age_based_stats(player_data, df):
             'decel_issue': decel_issue
         }
     }
+
+DECEL_TEMPLATE = """Speed Gain/Deceleration Program
+Player Name: {name}
+{name}'s exit velocity average was {exit_velo}mph. Based on the swing test results, an area they need to focus on is deceleration. In order for one body part to speed up the other needs to hit the brakes. Once achieved, their body will rotate faster and more efficiently. The drills listed below will help, I recommend 3 sets of 8-10 reps each.
+
+Environment Day 1 Day 2
+Bat Speed             Cardboard Slider         Cardboard Slider
+Flips, short BP      Heels Down,No Stride     Heels Down,No Stride
+Default to Tee       Double Tee Stop Swing     Double Tee Stop Swing"""
+
+ROT_ACC_TEMPLATE = """Rotational Acceleration and Sequencing Program
+Player Name: {name}
+{name}'s exit velocity average was {exit_velo}mph. They were placed in this program because their Rotational Acceleration results averaged {rot_acc}g's (Ideally, we want this 15+). What this means is that they are rotating out of order (sequence), which will reduce their barrel accuracy & rotational speed. The drills listed below will help, I recommend 3 sets of 8 reps of each.
+
+Environment Day 1 Day 2
+Bat Speed             45 Degree Drill          45 Degree Drill
+Flips, short BP      No Stride, 1,2,3 rhythm   No Stride, 1,2,3 rhythm
+Default to Tee       PVC Stop Swing            PVC Stop Swing"""
+
+VBA_TEMPLATE = """Vertical Bat Angle (VBA) Program
+Player Name: {name}
+{name}'s exit velocity average was {exit_velo}mph and their swing test showed {vba_high} swings above -24°. Their average VBA was {avg_vba}°. Ideally, we want to see their bat more vertical. Once achieved, it will allow them to stay "on plane" with the ball longer, which enables them to hit the ball hard when their timing is off. The drills below will help, I recommend 3 sets of 8 reps of each.
+
+Environment Day 1 Day 2
+Bat Speed             PVC Torso Turns          PVC Torso Turns
+Flips, short BP      Double Tee Stop Swing     Double Tee Stop Swing
+Default to Tee       Hinge Against Tee         Hinge Against Tee"""
+
+def create_pdf(content, filename):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    
+    pdf.multi_cell(0, 10, content)
+    
+    pdf.set_y(-60)
+    pdf.multi_cell(0, 10, """Who Wrote this Report?
+Dan Kennon
+dkennon@elitebaseballtraining.com
+(575) 520 1174
+
+Next Steps
+Week 1 - 4: Execute the drills to the best of your ability.
+Week 5 - 8: Reach out to Dan Kennon for "form checks."
+Week 9 - 12: If consistent, reach out for additional drills.""")
+    
+    return pdf.output(dest='S').encode('latin-1')
+
+def generate_report(player_data, stats):
+    name = f"{player_data['First Name']} {player_data['Last Name']}"
+    
+    report_data = {
+        'name': name,
+        'exit_velo': f"{stats['exit_velo']['avg']:.1f}",
+        'rot_acc': f"{stats['rot_acc']['avg']:.1f}",
+        'vba_high': stats['swing_issues']['vba_high'],
+        'avg_vba': "-24.0"  # Calculate this if needed
+    }
+    
+    issues = stats['swing_issues']
+    if issues['vba_issue']:
+        template = VBA_TEMPLATE
+    elif issues['rot_issue']:
+        template = ROT_ACC_TEMPLATE
+    else:
+        template = DECEL_TEMPLATE
+        
+    content = template.format(**report_data)
+    return create_pdf(content, f"{name}_plan.pdf")
 
 st.set_page_config(page_title="Baseball Metrics Dashboard", layout="wide")
 st.title("Player Metrics Dashboard")
@@ -118,7 +187,6 @@ if search:
                      f"{stats['max_exit_velo']['value']:.1f}",
                      f"{stats['max_exit_velo']['percentile']}%ile in {stats['age_group']}u")
         
-# Update the display section only:
         st.subheader("Swing Issues")
         issues = stats['swing_issues']
         if issues['vba_issue']:
@@ -133,11 +201,13 @@ if search:
         if issues['decel_issue']:
             st.success("Deceleration Pattern")
         
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Export Training Reports", type="primary"):
-                st.success("Reports exported!")
-        with col2:
-            st.markdown("[View Deceleration Report]()")
+        if st.button("Export Training Reports", type="primary"):
+            pdf = generate_report(player, stats)
+            st.download_button(
+                "Download Training Plan",
+                pdf,
+                f"{player['First Name']}_{player['Last Name']}_plan.pdf",
+                "application/pdf"
+            )
     else:
         st.warning("No player found")
