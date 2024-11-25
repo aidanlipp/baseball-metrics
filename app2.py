@@ -116,45 +116,37 @@ def generate_report(player_data, stats):
     docx_stream.seek(0)
     return docx_stream
     
-st.set_page_config(page_title="Metrics Dashboard", layout="wide")
-st.title("Player Metrics Dashboard") 
-
+st.set_page(page_title="Metrics", layout="wide"); st.title("Player Metrics")
 df = load_data()
-
-search = st.text_input("", placeholder="Search by name...")
+search = st.text("", ph="Search by name...")
 if search:
-    matches = df[df['First Name'].str.contains(search,case=False) | df['Last Name'].str.contains(search,case=False)]
-    if matches.empty:
-        st.warning("No player found")
+    matches = df[df['First'].contains(search,False)|df['Last'].contains(search,False)]
+    if matches.empty: st.warn("No player found")
     else:
-        player_options = [f"{p['First Name']} {p['Last Name']} ({p['age']})" for _, p in matches.iterrows()]
-        selected = st.selectbox("Select player", player_options)
-        player_idx = player_options.index(selected)
-        player = matches.iloc[player_idx]
-        
+        opts = [f"{p['First']} {p['Last']} ({p['age']})" for _,p in matches.iterrows()]
+        sel = st.selectbox("Select player", opts)
+        idx = opts.index(sel)
+        player = matches.iloc[idx]
         stats = calculate_age_based_stats(player, df)
-        if stats is None:
-            st.error("Unable to calculate stats")
+        if stats is None: st.error("Unable to calculate stats")
         else:
-            st.header(selected)
-            
-            st.subheader("Avg Metrics")
+            st.header(sel)
+            st.subhead("Avg Metrics")
             cols = st.columns(3)
-            cols[0].metric("Bat Speed (mph)", f"{stats['bat_speed']['avg']:.1f}", f"{stats['bat_speed']['percentile']}%ile")
-            cols[1].metric("Rot. Acc. (g)", f"{stats['rot_acc']['avg']:.1f}", f"{stats['rot_acc']['percentile']}%ile")
-            cols[2].metric("Exit Velo (mph)", f"{stats['exit_velo']['avg']:.1f}", f"{stats['exit_velo']['percentile']}%ile")
-            
-            st.subheader("Max Metrics")
+            cols[0].metric("Bat (mph)", f"{stats['bat_speed']['avg']:.1f}", f"{stats['bat_speed']['percentile']}%ile")
+            cols[1].metric("Rot. (g)", f"{stats['rot_acc']['avg']:.1f}", f"{stats['rot_acc']['percentile']}%ile")
+            cols[2].metric("Exit (mph)", f"{stats['exit_velo']['avg']:.1f}", f"{stats['exit_velo']['percentile']}%ile")
+            st.subhead("Max Metrics")
             cols = st.columns(3)
-            cols[0].metric("Bat Speed (mph)", f"{stats['max_bat_speed']['value']:.1f}", f"{stats['max_bat_speed']['percentile']}%ile")
-            cols[1].metric("Rot. Acc. (g)", f"{stats['max_rot_acc']['value']:.1f}", f"{stats['max_rot_acc']['percentile']}%ile")
-            cols[2].metric("Exit Velo (mph)", f"{stats['max_exit_velo']['value']:.1f}", f"{stats['max_exit_velo']['percentile']}%ile")
-            
-            st.subheader("Swing Issues")
-            issues = stats['swing_issues']
-            if issues['vba_high'] > 0 or issues['vba_low'] > 0:
-                st.warning(f"VBA Issue: {issues['vba_high']} swings >-24°, {issues['vba_low']} swings <-45°")
-            elif issues['rot_issue']:
+            cols[0].metric("Bat (mph)", f"{stats['max_bat_speed']['value']:.1f}", f"{stats['max_bat_speed']['percentile']}%ile")
+            cols[1].metric("Rot. (g)", f"{stats['max_rot_acc']['value']:.1f}", f"{stats['max_rot_acc']['percentile']}%ile")
+            cols[2].metric("Exit (mph)", f"{stats['max_exit_velo']['value']:.1f}", f"{stats['max_exit_velo']['percentile']}%ile")
+            st.subhead("Swing Issues")
+            iss = stats['swing_issues']
+            if iss['vba_high'] >= 3 or iss['vba_low'] >= 3:
+                msg = f"VBA Issue: {iss['vba_high']} swings >-24°, {iss['vba_low']} swings <-45°"
+                st.warning(msg)
+            elif iss['rot_issue']:
                 st.warning("Rot. Acc. Issue: Avg <7.0g")
             else:
                 st.success("Decel. Pattern")
