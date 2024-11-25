@@ -12,11 +12,8 @@ def calculate_percentile(value, series):
     return round(100 * (series <= value).mean())
 
 def calculate_age_based_stats(player_data, df):
-    # Extract age groups
     df['age_group'] = df['age'].apply(extract_age_group)
     player_age_group = extract_age_group(player_data['age'])
-    
-    # Filter for same age group
     age_group_df = df[df['age_group'] == player_age_group]
     
     bat_speeds = [float(player_data[f'Bat Speed {i}']) for i in range(1,6)]
@@ -24,15 +21,22 @@ def calculate_age_based_stats(player_data, df):
     exit_velos = [float(player_data[f'Exit Velo {i}']) for i in range(1,6)]
     vbas = [float(player_data[f'VBA {i}']) for i in range(1,6)]
     
-    # Calculate age-group averages
     age_bat_speeds = age_group_df[[f'Bat Speed {i}' for i in range(1,6)]].mean(axis=1)
     age_rot_accs = age_group_df[[f'Rot. Acc. {i}' for i in range(1,6)]].mean(axis=1)
     age_exit_velos = age_group_df[[f'Exit Velo {i}' for i in range(1,6)]].mean(axis=1)
     
-    # Calculate age-group max values
     age_max_bat_speeds = age_group_df[[f'Bat Speed {i}' for i in range(1,6)]].max(axis=1)
     age_max_rot_accs = age_group_df[[f'Rot. Acc. {i}' for i in range(1,6)]].max(axis=1)
     age_max_exit_velos = age_group_df[[f'Exit Velo {i}' for i in range(1,6)]].max(axis=1)
+
+    # Calculate swing issues
+    vba_high = sum(1 for x in vbas if x > -24)
+    vba_low = sum(1 for x in vbas if x < -45)
+    avg_rot_acc = np.mean(rot_accs)
+    
+    vba_issue = vba_high >= 3 or vba_low >= 3
+    rot_issue = avg_rot_acc < 7.0
+    decel_issue = not (vba_issue or rot_issue)
     
     return {
         'age_group': player_age_group,
@@ -45,7 +49,7 @@ def calculate_age_based_stats(player_data, df):
             'percentile': calculate_percentile(np.max(bat_speeds), age_max_bat_speeds)
         },
         'rot_acc': {
-            'avg': np.mean(rot_accs),
+            'avg': avg_rot_acc,
             'percentile': calculate_percentile(np.mean(rot_accs), age_rot_accs)
         },
         'max_rot_acc': {
@@ -60,9 +64,13 @@ def calculate_age_based_stats(player_data, df):
             'value': np.max(exit_velos),
             'percentile': calculate_percentile(np.max(exit_velos), age_max_exit_velos)
         },
-        'vba_count': sum(1 for x in vbas if x > -24),
-        'dece': any(-30 <= x <= -20 for x in vbas),
-        'gs': any(-40 <= x <= -30 for x in vbas)
+        'swing_issues': {
+            'vba_high': vba_high,
+            'vba_low': vba_low,
+            'vba_issue': vba_issue,
+            'rot_issue': rot_issue,
+            'decel_issue': decel_issue
+        }
     }
 
 st.set_page_config(page_title="Baseball Metrics Dashboard", layout="wide")
@@ -109,47 +117,21 @@ if search:
             st.metric("Max Exit Velocity (mph)", 
                      f"{stats['max_exit_velo']['value']:.1f}",
                      f"{stats['max_exit_velo']['percentile']}%ile in {stats['age_group']}u")
-
-def check_swing_issues(stats):
-    vba_high = sum(1 for x in stats['vbas'] if x > -24)
-    vba_low = sum(1 for x in stats['vbas'] if x < -45)
-    has_vba_issue = vba_high >= 3 or vba_low >= 3
-    has_rot_issue = stats['rot_acc']['avg'] < 7.0
-    has_decel_issue = not (has_vba_issue or has_rot_issue)
-    
-    return {
-        'vba_count_high': vba_high,
-        'vba_count_low': vba_low,
-        'has_vba': has_vba_issue,
-        'has_rot': has_rot_issue,
-        'has_decel': has_decel_issue
-    }
-
-# Update the stats calculation
-def calculate_age_based_stats(player_data, df):
-    # Previous code remains same until vbas calculation
-    vbas = [float(player_data[f'VBA {i}']) for i in range(1,6)]
-    
-    stats = {
-        'age_group': player_age_group,
-        'bat_speed': {...},  # Previous calculations
-        'max_bat_speed': {...},
-        'rot_acc': {...},
-        'max_rot_acc': {...},
-        'exit_velo': {...},
-        'max_exit_velo': {...},
-        'vbas': vbas
-    }
-    
-    swing_issues = check_swing_issues(stats)
-    stats.update(swing_issues)
-    return stats
-
-# Update display section
-st.subheader("Swing Issues")
-if stats['has_vba']:
-    st.warning(f"VBA Issue: {stats['vba_count_high']} swings above -24° or {stats['vba_count_low']} below -45°")
-if stats['has_rot']:
-    st.warning(f"Rotational Acceleration: Average below 7.0g")
-if stats['has_decel']:
-    st.success("Deceleration Pattern")
+        
+        st.subheader("Swing Issues")
+        issues = stats['swing_issues']
+        if issues['vba_issue']:
+            st.warning(f"VBA Issue: {issues['vba_high']} swings above -24° or {issues['vba_low']} below -45°")
+        if issues['rot_issue']:
+            st.warning(f"Rotational Acceleration Issue: Average below 7.0g")
+        if issues['decel_issue']:
+            st.success("Deceleration Pattern")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Export Training Reports", type="primary"):
+                st.success("Reports exported!")
+        with col2:
+            st.markdown("[View Deceleration Report]()")
+    else:
+        st.warning("No player found")
