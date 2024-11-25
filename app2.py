@@ -116,42 +116,45 @@ def generate_report(player_data, stats):
     docx_stream.seek(0)
     return docx_stream
     
-st.set_page_config(page_title="Baseball Metrics Dashboard", layout="wide")
+st.set_page_config(page_title="Metrics Dashboard", layout="wide") 
 st.title("Player Metrics Dashboard")
 
 df = load_data()
 
 search = st.text_input("", placeholder="Search by name...")
 if search:
-    matches = df[df['First Name'].str.contains(search, case=False) | df['Last Name'].str.contains(search, case=False)]
-    if not matches.empty:
-        player = matches.iloc[0]
+    matches = df[df['First'].str.contains(search,False) | df['Last'].str.contains(search,False)]
+    if matches.empty:
+        st.warning("No player found")
+    else:
+        player_options = [f"{p['First']} {p['Last']} ({p['age']})" for _, p in matches.iterrows()]
+        selected = st.selectbox("Select player", player_options)
+        player_idx = player_options.index(selected)
+        player = matches.iloc[player_idx]
+        
         stats = calculate_age_based_stats(player, df)
         if stats is None:
-            st.error("Unable to calculate stats due to missing data")
+            st.error("Unable to calculate stats")
         else:
-            st.header(f"{player['First Name']} {player['Last Name']} ({player['age']})")
+            st.header(selected)
             
-            st.subheader("Average Metrics")
+            st.subheader("Avg Metrics")
             cols = st.columns(3)
-            cols[0].metric("Avg Bat Speed (mph)", f"{stats['bat_speed']['avg']:.1f}", f"{stats['bat_speed']['percentile']}%ile in {stats['age_group']}u")
-            cols[1].metric("Avg Rot. Acc. (g)", f"{stats['rot_acc']['avg']:.1f}", f"{stats['rot_acc']['percentile']}%ile in {stats['age_group']}u") 
-            cols[2].metric("Avg Exit Velo (mph)", f"{stats['exit_velo']['avg']:.1f}", f"{stats['exit_velo']['percentile']}%ile in {stats['age_group']}u")
-
+            cols[0].metric("Bat Speed (mph)", f"{stats['bat_speed']['avg']:.1f}", f"{stats['bat_speed']['percentile']}%ile")
+            cols[1].metric("Rot. Acc. (g)", f"{stats['rot_acc']['avg']:.1f}", f"{stats['rot_acc']['percentile']}%ile")
+            cols[2].metric("Exit Velo (mph)", f"{stats['exit_velo']['avg']:.1f}", f"{stats['exit_velo']['percentile']}%ile")
+            
             st.subheader("Max Metrics")
             cols = st.columns(3)
-            cols[0].metric("Max Bat Speed (mph)", f"{stats['max_bat_speed']['value']:.1f}", f"{stats['max_bat_speed']['percentile']}%ile in {stats['age_group']}u")
-            cols[1].metric("Max Rot. Acc. (g)", f"{stats['max_rot_acc']['value']:.1f}", f"{stats['max_rot_acc']['percentile']}%ile in {stats['age_group']}u")
-            cols[2].metric("Max Exit Velo (mph)", f"{stats['max_exit_velo']['value']:.1f}", f"{stats['max_exit_velo']['percentile']}%ile in {stats['age_group']}u")
+            cols[0].metric("Bat Speed (mph)", f"{stats['max_bat_speed']['value']:.1f}", f"{stats['max_bat_speed']['percentile']}%ile")
+            cols[1].metric("Rot. Acc. (g)", f"{stats['max_rot_acc']['value']:.1f}", f"{stats['max_rot_acc']['percentile']}%ile")
+            cols[2].metric("Exit Velo (mph)", f"{stats['max_exit_velo']['value']:.1f}", f"{stats['max_exit_velo']['percentile']}%ile")
             
             st.subheader("Swing Issues")
             issues = stats['swing_issues']
-            if issues['vba_issue']:
-                message = [f"{issues['vba_high']} swings >-24°", f"{issues['vba_low']} swings <-45°"]
-                st.warning("VBA Issue: " + " and ".join(message))
+            if issues['vba_high'] > 0 or issues['vba_low'] > 0:
+                st.warning(f"VBA Issue: {issues['vba_high']} swings >-24°, {issues['vba_low']} swings <-45°")
             elif issues['rot_issue']:
-                st.warning("Rotational Acceleration Issue: Avg <7.0g")
+                st.warning("Rot. Acc. Issue: Avg <7.0g")
             else:
-                st.success("Deceleration Pattern")
-    else:
-        st.warning("No player found")
+                st.success("Decel. Pattern")
