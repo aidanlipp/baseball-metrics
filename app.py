@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from fpdf import FPDF
+from docx import Document
+import io
 
 def load_data():
     return pd.read_csv('Testing Metrics.csv')
@@ -33,6 +34,7 @@ def calculate_age_based_stats(player_data, df):
     vba_high = sum(1 for x in vbas if x > -24)
     vba_low = sum(1 for x in vbas if x < -45)
     avg_rot_acc = np.mean(rot_accs)
+    avg_vba = np.mean(vbas)
     
     vba_issue = vba_high >= 3 or vba_low >= 3
     rot_issue = avg_rot_acc < 7.0
@@ -69,133 +71,39 @@ def calculate_age_based_stats(player_data, df):
             'vba_low': vba_low,
             'vba_issue': vba_issue,
             'rot_issue': rot_issue,
-            'decel_issue': decel_issue
+            'decel_issue': decel_issue,
+            'avg_vba': avg_vba
         }
     }
 
-DECEL_TEMPLATE = """Speed Gain/Deceleration Program
-
-Player Name: {name}
-
-{name}'s exit velocity average was {exit_velo}mph. Based on the swing test results, an area they need to focus on is deceleration. In order for one body part to speed up the other needs to hit the brakes. Once achieved, their body will rotate faster and more efficiently. The drills listed below will help, I recommend 3 sets of 8-10 reps each.
-
-Environment        Day 1                  Day 2
-Bat Speed         Cardboard Slider       Cardboard Slider
-Flips, short BP   Heels Down,No Stride   Heels Down,No Stride
-Default to Tee    Double Tee Stop Swing  Double Tee Stop Swing"""
-
-ROT_ACC_TEMPLATE = """Rotational Acceleration and Sequencing Program
-
-Player Name: {name}
-
-{name}'s exit velocity average was {exit_velo}mph. They were placed in this program because their Rotational Acceleration results averaged {rot_acc}g's (Ideally, we want this 15+). What this means is that they are rotating out of order (sequence), which will reduce their barrel accuracy & rotational speed. The drills listed below will help, I recommend 3 sets of 8 reps of each.
-
-Environment        Day 1                     Day 2
-Bat Speed         45 Degree Drill           45 Degree Drill
-Flips, short BP   No Stride, 1,2,3 rhythm   No Stride, 1,2,3 rhythm
-Default to Tee    PVC Stop Swing            PVC Stop Swing"""
-
-VBA_TEMPLATE = """Vertical Bat Angle (VBA) Program
-
-Player Name: {name}
-
-{name}'s exit velocity average was {exit_velo}mph and their swing test showed {vba_high} swings above -24°.
-Their average VBA was {avg_vba}°. Ideally, we want to see their bat more vertical. Once achieved, it will
-allow them to stay "on plane" with the ball longer, which enables them to hit the ball hard when their
-timing is off. The drills below will help, I recommend 3 sets of 8 reps of each.
-
-Environment          Day 1                           Day 2
-_____________________________________________________________________
-
-Bat Speed
-Flips, short BP      PVC Torso Turns at Various     PVC Torso Turns at Various
-if available         Heights                        Heights
-Default to Tee       Double Tee Stop Swing          Double Tee Stop Swing
-if you need to       Hinge Against Tee              Hinge Against Tee
-
-Short BP            Hunt Heaters, Hit the ball      Runner on 3B, Infield In, Hit
-                   HARD                             the Ball Hard to the OF
-
-Live/Machine       If Available                     If Available
-
-If you're able to hit a 3rd day you should, If you have access to a machine, work on high velo at
-least once per week."""
-
-def create_pdf(content, filename):
-    class PDF(FPDF):
-        def header(self):
-            self.set_font('Arial', 'B', 16)
-            self.cell(0, 10, content.split('\n')[0], 0, 1, 'L')
-            self.ln(10)
-
-        def footer(self):
-            self.set_y(-30)
-            self.set_font('Arial', 'B', 12)
-            self.cell(0, 10, 'Who Wrote this Report?', 0, 1, 'L')
-            self.set_font('Arial', '', 12)
-            self.cell(0, 6, 'Dan Kennon', 0, 1, 'L')
-            self.set_font('Arial', '', 10)
-            self.set_text_color(0, 0, 255)  # Blue color for email
-            self.cell(0, 6, 'dkennon@elitebaseballtraining.com', 0, 1, 'L')
-            self.set_text_color(0, 0, 0)    # Reset to black
-            self.cell(0, 6, '(575) 520 1174', 0, 1, 'L')
-
-    pdf = PDF()
-    pdf.add_page()
-    pdf.set_font('Arial', '', 12)
-    pdf.set_margins(20, 20, 20)
-    
-    # Split content into sections
-    sections = content.split('\n\n')
-    
-    # Title already handled in header
-    
-    # Player name
-    pdf.set_font('Arial', 'B', 12)
-    pdf.cell(0, 10, sections[1], 0, 1, 'L')
-    
-    # Description
-    pdf.set_font('Arial', '', 12)
-    pdf.multi_cell(0, 6, sections[2])
-    pdf.ln(5)
-    
-    # Table header
-    pdf.set_font('Arial', 'B', 12)
-    pdf.cell(0, 10, sections[3], 0, 1, 'L')
-    pdf.line(20, pdf.get_y(), 190, pdf.get_y())
-    
-    # Table content with proper spacing
-    pdf.set_font('Arial', '', 12)
-    lines = sections[4].split('\n')
-    for line in lines:
-        if line.startswith('Environment') or line.startswith('Bat Speed'):
-            pdf.set_font('Arial', 'B', 12)
-        pdf.multi_cell(0, 6, line)
-        pdf.set_font('Arial', '', 12)
-    
-    return pdf.output(dest='S').encode('latin-1')
-
 def generate_report(player_data, stats):
-    name = f"{player_data['First Name']} {player_data['Last Name']}"
-    
-    report_data = {
-        'name': name,
-        'exit_velo': f"{stats['exit_velo']['avg']:.1f}",
-        'rot_acc': f"{stats['rot_acc']['avg']:.1f}",
-        'vba_high': stats['swing_issues']['vba_high'],
-        'avg_vba': "-24.0"  # Calculate this if needed
-    }
-    
-    issues = stats['swing_issues']
-    if issues['vba_issue']:
-        template = VBA_TEMPLATE
-    elif issues['rot_issue']:
-        template = ROT_ACC_TEMPLATE
+    if stats['swing_issues']['vba_issue']:
+        doc = Document('templates/VBA_template.docx')
+    elif stats['swing_issues']['rot_issue']:
+        doc = Document('templates/RotAcc_template.docx')
     else:
-        template = DECEL_TEMPLATE
-        
-    content = template.format(**report_data)
-    return create_pdf(content, f"{name}_plan.pdf")
+        doc = Document('templates/Decel_template.docx')
+    
+    # Replace placeholders in paragraphs
+    for paragraph in doc.paragraphs:
+        text = paragraph.text
+        if '{name}' in text:
+            text = text.replace('{name}', f"{player_data['First Name']} {player_data['Last Name']}")
+        if '{exit_velo}' in text:
+            text = text.replace('{exit_velo}', f"{stats['exit_velo']['avg']:.1f}")
+        if '{rot_acc}' in text:
+            text = text.replace('{rot_acc}', f"{stats['rot_acc']['avg']:.1f}")
+        if '{vba_high}' in text:
+            text = text.replace('{vba_high}', str(stats['swing_issues']['vba_high']))
+        if '{avg_vba}' in text:
+            text = text.replace('{avg_vba}', f"{stats['swing_issues']['avg_vba']:.1f}")
+        paragraph.text = text
+
+    # Save to memory
+    docx_stream = io.BytesIO()
+    doc.save(docx_stream)
+    docx_stream.seek(0)
+    return docx_stream
 
 st.set_page_config(page_title="Baseball Metrics Dashboard", layout="wide")
 st.title("Player Metrics Dashboard")
@@ -257,12 +165,12 @@ if search:
             st.success("Deceleration Pattern")
         
         if st.button("Export Training Reports", type="primary"):
-            pdf = generate_report(player, stats)
+            docx_file = generate_report(player, stats)
             st.download_button(
                 "Download Training Plan",
-                pdf,
-                f"{player['First Name']}_{player['Last Name']}_plan.pdf",
-                "application/pdf"
+                docx_file,
+                f"{player['First Name']}_{player['Last Name']}_plan.docx",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
     else:
         st.warning("No player found")
