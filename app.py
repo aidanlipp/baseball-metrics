@@ -118,10 +118,16 @@ if search:
                      f"{stats['max_exit_velo']['value']:.1f}",
                      f"{stats['max_exit_velo']['percentile']}%ile in {stats['age_group']}u")
         
+# Update the display section only:
         st.subheader("Swing Issues")
         issues = stats['swing_issues']
         if issues['vba_issue']:
-            st.warning(f"VBA Issue: {issues['vba_high']} swings above -24° or {issues['vba_low']} below -45°")
+            message = []
+            if issues['vba_high'] >= 3:
+                message.append(f"{issues['vba_high']} swings above -24°")
+            if issues['vba_low'] >= 3:
+                message.append(f"{issues['vba_low']} swings below -45°")
+            st.warning("VBA Issue: " + " and ".join(message))
         if issues['rot_issue']:
             st.warning(f"Rotational Acceleration Issue: Average below 7.0g")
         if issues['decel_issue']:
