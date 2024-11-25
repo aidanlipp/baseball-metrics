@@ -79,30 +79,22 @@ def calculate_age_based_stats(player_data, df):
 def generate_report(player_data, stats):
     template_path = 'templates/'
     
-    # Select template and prepare content
     if stats['swing_issues']['vba_issue']:
         doc = Document(template_path + 'VBA_template.docx')
-        title = "Vertical Bat Angle (VBA) Program"
+        summary = f"{player_data['First Name']}'s exit velocity average was {stats['exit_velo']['avg']:.1f}mph and their swing test showed {stats['swing_issues']['vba_high']} swings above -24°. Their average VBA was {stats['swing_issues']['avg_vba']:.1f}°. Ideally, we want to see their bat more vertical. Once achieved, it will allow them to stay \"on plane\" with the ball longer, which enables them to hit the ball hard when their timing is off. The drills below will help, I recommend 3 sets of 8 reps of each."
     elif stats['swing_issues']['rot_issue']:
         doc = Document(template_path + 'RotAcc_template.docx')
-        title = "Rotational Acceleration and Sequencing Program"
+        summary = f"{player_data['First Name']}'s exit velocity average was {stats['exit_velo']['avg']:.1f}mph. They were placed in this program because their Rotational Acceleration results averaged {stats['rot_acc']['avg']:.1f}g's (Ideally, we want this 15+). What this means is that they are rotating out of order (sequence), which will reduce their barrel accuracy & rotational speed. The drills listed below will help, I recommend 3 sets of 8 reps of each."
     else:
         doc = Document(template_path + 'Decel_template.docx')
-        title = "Speed Gain/Deceleration Program"
+        summary = f"{player_data['First Name']}'s exit velocity average was {stats['exit_velo']['avg']:.1f}mph. Based on the swing test results, an area they need to focus on is deceleration. In order for one body part to speed up the other needs to hit the brakes. Once achieved, their body will rotate faster and more efficiently. The drills listed below will help, I recommend 3 sets of 8-10 reps each."
 
-    # Update paragraphs
     for paragraph in doc.paragraphs:
-        if "Player Name:" in paragraph.text:
-            paragraph.text = f"Player Name: {player_data['First Name']} {player_data['Last Name']}"
-            continue
-            
-        text = paragraph.text
-        text = text.replace("{name}", f"{player_data['First Name']} {player_data['Last Name']}")
-        text = text.replace("{exit_velo}", f"{stats['exit_velo']['avg']:.1f}")
-        text = text.replace("{rot_acc}", f"{stats['rot_acc']['avg']:.1f}")
-        text = text.replace("{vba_high}", str(stats['swing_issues']['vba_high']))
-        text = text.replace("{avg_vba}", f"{stats['swing_issues']['avg_vba']:.1f}")
-        paragraph.text = text
+        if "{{PLAYER_NAME}}" in paragraph.text:
+            paragraph.text = paragraph.text.replace("{{PLAYER_NAME}}", 
+                f"{player_data['First Name']} {player_data['Last Name']}")
+        if "{{SUMMARY}}" in paragraph.text:
+            paragraph.text = paragraph.text.replace("{{SUMMARY}}", summary)
 
     docx_stream = io.BytesIO()
     doc.save(docx_stream)
