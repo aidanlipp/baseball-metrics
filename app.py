@@ -178,13 +178,13 @@ if search:
             if issues['decel_issue']:
                 st.success("Deceleration Pattern")
             
-            if st.button("Export Training Reports", type="primary"):
-                docx_file = generate_report(player, stats)
-                st.download_button(
-                    "Download Training Plan",
-                    docx_file,
-                    f"{player['First Name']}_{player['Last Name']}_plan.docx",
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                )
+if st.button("Export Training Reports", type="primary"):
+    docx_file = generate_report(player, stats)
+    st.download_button(
+        "Download Training Plan",
+        docx_file,
+        f"{player['Last Name']}_Individualized_Hitting_Plan_'24.docx",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
     else:
         st.warning("No player found")
