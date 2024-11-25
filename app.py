@@ -14,7 +14,7 @@ def calculate_percentile(value, series):
 def calculate_age_based_stats(player_data, df):
     # Extract age groups
     df['age_group'] = df['age'].apply(extract_age_group)
-    player_age_group = extract_age_group(player_data['Age'])
+    player_age_group = extract_age_group(player_data['age'])
     
     # Filter for same age group
     age_group_df = df[df['age_group'] == player_age_group]
