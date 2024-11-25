@@ -109,20 +109,47 @@ if search:
             st.metric("Max Exit Velocity (mph)", 
                      f"{stats['max_exit_velo']['value']:.1f}",
                      f"{stats['max_exit_velo']['percentile']}%ile in {stats['age_group']}u")
-        
-        st.subheader("Swing Issues")
-        st.write(f"{stats['vba_count']} swings above -24°")
-        
-        if stats['dece']:
-            st.success("✓ Dece")
-        if stats['gs']:
-            st.success("✓ G's")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Export Training Reports", type="primary"):
-                st.success("Reports exported!")
-        with col2:
-            st.markdown("[View Deceleration Report]()")
-    else:
-        st.warning("No player found")
+
+def check_swing_issues(stats):
+    vba_high = sum(1 for x in stats['vbas'] if x > -24)
+    vba_low = sum(1 for x in stats['vbas'] if x < -45)
+    has_vba_issue = vba_high >= 3 or vba_low >= 3
+    has_rot_issue = stats['rot_acc']['avg'] < 7.0
+    has_decel_issue = not (has_vba_issue or has_rot_issue)
+    
+    return {
+        'vba_count_high': vba_high,
+        'vba_count_low': vba_low,
+        'has_vba': has_vba_issue,
+        'has_rot': has_rot_issue,
+        'has_decel': has_decel_issue
+    }
+
+# Update the stats calculation
+def calculate_age_based_stats(player_data, df):
+    # Previous code remains same until vbas calculation
+    vbas = [float(player_data[f'VBA {i}']) for i in range(1,6)]
+    
+    stats = {
+        'age_group': player_age_group,
+        'bat_speed': {...},  # Previous calculations
+        'max_bat_speed': {...},
+        'rot_acc': {...},
+        'max_rot_acc': {...},
+        'exit_velo': {...},
+        'max_exit_velo': {...},
+        'vbas': vbas
+    }
+    
+    swing_issues = check_swing_issues(stats)
+    stats.update(swing_issues)
+    return stats
+
+# Update display section
+st.subheader("Swing Issues")
+if stats['has_vba']:
+    st.warning(f"VBA Issue: {stats['vba_count_high']} swings above -24° or {stats['vba_count_low']} below -45°")
+if stats['has_rot']:
+    st.warning(f"Rotational Acceleration: Average below 7.0g")
+if stats['has_decel']:
+    st.success("Deceleration Pattern")
