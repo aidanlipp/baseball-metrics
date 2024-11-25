@@ -116,14 +116,14 @@ def generate_report(player_data, stats):
     docx_stream.seek(0)
     return docx_stream
     
-st.set_page(page_title="Metrics", layout="wide"); st.title("Player Metrics")
+st.set_page_config(page_title="Metrics", layout="wide"); st.title("Player Metrics")
 df = load_data()
-search = st.text("", ph="Search by name...")
+search = st.text_input("", placeholder="Search by name...")
 if search:
-    matches = df[df['First'].contains(search,False)|df['Last'].contains(search,False)]
-    if matches.empty: st.warn("No player found")
+    matches = df[df['First Name'].str.contains(search,case=False)|df['Last Name'].str.contains(search,case=False)]
+    if matches.empty: st.warning("No player found")
     else:
-        opts = [f"{p['First']} {p['Last']} ({p['age']})" for _,p in matches.iterrows()]
+        opts = [f"{p['First Name']} {p['Last Name']} ({p['age']})" for _,p in matches.iterrows()]
         sel = st.selectbox("Select player", opts)
         idx = opts.index(sel)
         player = matches.iloc[idx]
@@ -131,17 +131,17 @@ if search:
         if stats is None: st.error("Unable to calculate stats")
         else:
             st.header(sel)
-            st.subhead("Avg Metrics")
+            st.subheader("Avg Metrics")
             cols = st.columns(3)
             cols[0].metric("Bat (mph)", f"{stats['bat_speed']['avg']:.1f}", f"{stats['bat_speed']['percentile']}%ile")
             cols[1].metric("Rot. (g)", f"{stats['rot_acc']['avg']:.1f}", f"{stats['rot_acc']['percentile']}%ile")
             cols[2].metric("Exit (mph)", f"{stats['exit_velo']['avg']:.1f}", f"{stats['exit_velo']['percentile']}%ile")
-            st.subhead("Max Metrics")
+            st.subheader("Max Metrics")
             cols = st.columns(3)
             cols[0].metric("Bat (mph)", f"{stats['max_bat_speed']['value']:.1f}", f"{stats['max_bat_speed']['percentile']}%ile")
             cols[1].metric("Rot. (g)", f"{stats['max_rot_acc']['value']:.1f}", f"{stats['max_rot_acc']['percentile']}%ile")
             cols[2].metric("Exit (mph)", f"{stats['max_exit_velo']['value']:.1f}", f"{stats['max_exit_velo']['percentile']}%ile")
-            st.subhead("Swing Issues")
+            st.subheader("Swing Issues")
             iss = stats['swing_issues']
             if iss['vba_high'] >= 3 or iss['vba_low'] >= 3:
                 msg = f"VBA Issue: {iss['vba_high']} swings >-24°, {iss['vba_low']} swings <-45°"
