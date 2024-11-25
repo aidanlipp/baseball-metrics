@@ -116,18 +116,18 @@ def generate_report(player_data, stats):
     docx_stream.seek(0)
     return docx_stream
     
-st.set_page_config(page_title="Metrics Dashboard", layout="wide") 
-st.title("Player Metrics Dashboard")
+st.set_page_config(page_title="Metrics Dashboard", layout="wide")
+st.title("Player Metrics Dashboard") 
 
 df = load_data()
 
 search = st.text_input("", placeholder="Search by name...")
 if search:
-    matches = df[df['First'].str.contains(search,False) | df['Last'].str.contains(search,False)]
+    matches = df[df['First Name'].str.contains(search,case=False) | df['Last Name'].str.contains(search,case=False)]
     if matches.empty:
         st.warning("No player found")
     else:
-        player_options = [f"{p['First']} {p['Last']} ({p['age']})" for _, p in matches.iterrows()]
+        player_options = [f"{p['First Name']} {p['Last Name']} ({p['age']})" for _, p in matches.iterrows()]
         selected = st.selectbox("Select player", player_options)
         player_idx = player_options.index(selected)
         player = matches.iloc[player_idx]
